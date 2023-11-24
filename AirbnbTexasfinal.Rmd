@@ -1,0 +1,125 @@
+---
+title: "Final.project"
+author: "Samira Bechi"
+date: "2023-11-24"
+output: powerpoint_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## INTRODUCTION
+[link for the Airbnb data](https://www.kaggle.com/datasets/PromptCloudHQ/airbnb-property-data-from-texas)
+Airbnb is an online platform that facilitates the booking and rental of lodging, primarily homes or apartments, on a short-term basis. Founded in 2008, Airbnb has grown into a global marketplace that connects people looking to rent their homes with travelers seeking unique and often more affordable accommodations than traditional hotels. The platform allows hosts to list their properties, providing details about the space, amenities, and pricing, while guests can browse listings and book accommodations for a specified period. Many people want to start this business but need more information to set themselves up in the market. The data we decided to work with is Airbnb property data from Texas from 2008 to 2017; this study will answer numerous questions, but most importantly, we will be able to see the growth of Airbnb throughout the years.
+
+## LIBRARY USED
+
+```{r}
+library(kableExtra)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(shiny)
+```
+
+## UNFILTERED DATA
+
+```{r}
+Airbnb_Texas <- read.csv("Airbnb_Texas_Rentals.csv")
+Airbnb_Texas
+```
+
+## FORMATING DATA
+```{r}
+#removing all unecessary data
+Airbnb_Texas$description <- NULL
+Airbnb_Texas$latitude <- NULL
+Airbnb_Texas$longitude <- NULL
+Airbnb_Texas$url <- NULL
+Airbnb_Texas$title <- NULL
+# separate year and moth to be able to access data easily
+date <- strsplit(x = as.character(Airbnb_Texas$date_of_listing) ,split = " ",fixed = T)
+Airbnb_Texas$month <- as.factor(sapply(X = date,"[[",1))
+Airbnb_Texas$year <- as.factor(sapply(X = date,"[[",2))
+Airbnb_Texas$date_of_listing <- NULL
+# remove $ sign and convert the average per night to a numeric 
+Airbnb_Texas$average_rate_per_night <-substr(x = Airbnb_Texas$average_rate_per_night,start = 2,stop = 10)
+Airbnb_Texas$average_rate_per_night <- as.numeric(Airbnb_Texas$average_rate_per_night)
+# consider a studio as a 1 bedroom and change it to numeric 
+Airbnb_Texas$bedrooms_count[Airbnb_Texas$bedrooms_count=="Studio"] <- "1"
+Airbnb_Texas$bedrooms_count <- as.numeric(Airbnb_Texas$bedrooms_count)
+Airbnb_Texas
+```
+## DATA KEY TERMS
+**average_rate_per_night** cost of the room per night
+**bedrooms_count** number of bedroom
+**city** location of the airbnb
+**date_of_listing** date when airbnb was available on platform
+## 1- Total Airbnb from 2008 to 2017
+From 2008 to 2017 exactly 18,259 were created in Texas.
+## 2- Number of houses by year
+We are taking our formatted data to display the number of houses per year. This will help us determine what year had the most additional Airbnbs and if there was an increase or decrease in the number of Airbnbs added yearly.
+```{r}
+ggplot(Airbnb_Texas %>% group_by(year) %>% count(), aes(year,n,fill=year,color=year)) +
+   geom_col() +
+   labs(title=" Number of houses by year in Texas",subtitle="By Year")
+```
+
+## 3- Top 10 city with most airbnb 
+```{r}
+Airbnb_Texas %>% group_by(city) %>% count() %>% arrange(desc(n)) %>% kbl() %>% row_spec(1:10, background = "pink") %>% kable_paper()  %>% scroll_box(height = "300px")
+```
+## 4- Average rate per night per year
+```{r}
+ggplot(Airbnb_Texas %>% 
+         group_by(year) %>%
+         summarize(mean_rate = mean(average_rate_per_night, na.rm = TRUE)),
+       aes(x = year, y = mean_rate, group = 1)) +
+  geom_line() +
+  labs(title = "Average Rate Over Years")
+
+```
+## 5- Average rate per night per month 
+```{r}
+# Create an ordered factor for 'month'
+order_of_months <- c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+Airbnb_Texas$month <- factor(Airbnb_Texas$month, levels = order_of_months)
+
+# Plot
+ggplot(Airbnb_Texas %>% 
+         group_by(month) %>%
+         summarize(mean_rate = mean(average_rate_per_night, na.rm = TRUE)),
+       aes(month, mean_rate, fill = month, color = month)) +
+  geom_col() +
+  labs(title = "Average Rate Per Month") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+## 6- Average rate per night per year
+```{r}
+ggplot(Airbnb_Texas %>% 
+         group_by(year) %>%
+         summarize(mean_rate = mean(average_rate_per_night, na.rm = TRUE)),
+       aes(x = year, y = mean_rate, group = 1)) +
+  geom_line() +
+  labs(title = "Average Rate Over Years")
+
+```
+## 6- Number of bedrooms 
+```{r}
+Airbnb_Texas$bedrooms_count[Airbnb_Texas$bedrooms_count=="Studio"] <- "1"
+Airbnb_Texas$bedrooms_count <- as.numeric(Airbnb_Texas$bedrooms_count)
+ ggplot(Airbnb_Texas , aes(x = bedrooms_count, fill = as.factor(bedrooms_count))) +
+  geom_histogram(binwidth = 0.5, position = "identity", alpha = 0.7) +
+  scale_fill_manual(values = rainbow(length(unique(Airbnb_Texas$bedrooms_count)))) +
+   labs(title = "Number of Bedrooms")
+
+```
+## 7-Average rate night per bedroom
+```{r}
+Airbnb_Texas %>% 
+  group_by(bedrooms_count) %>%
+  summarize(mean_rate = mean(average_rate_per_night, na.rm = TRUE))
+```
+## Conclusion
+
